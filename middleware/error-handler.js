@@ -3,8 +3,13 @@
  */
 function errorHandler(err, req, res, _next) {
     const status = err.status || err.response?.status || 500;
-    const message =
+    let message =
         err.message || "An unexpected error occurred during scraping.";
+
+    // Provide clearer guidance for upstream anti-bot blocks in VPS/datacenter environments.
+    if (status === 403 && err.response?.config?.url) {
+        message = `Upstream target returned 403 (blocked/forbidden): ${err.response.config.url}. This often happens on datacenter IPs. Set SCRAPE_USER_AGENT and SCRAPE_COOKIE in .env, or use a proxy/residential egress.`;
+    }
 
     console.error(
         JSON.stringify({
