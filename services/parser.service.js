@@ -14,11 +14,15 @@ class ParserService {
      */
     parseHtmlList(html, config) {
         const $ = cheerio.load(html);
-        const { selectors, baseUrl, itemFilter } = config;
+        const { selectors, baseUrl, itemFilter, containerSelector } = config;
         const items = [];
         const seen = new Set();
+        const root =
+            containerSelector && $(containerSelector).length
+                ? $(containerSelector)
+                : $("body");
 
-        $(selectors.item).each((_, el) => {
+        root.find(selectors.item).each((_, el) => {
             const element = $(el);
 
             // For flat anchor lists (tags), href is on the item itself
@@ -41,6 +45,15 @@ class ParserService {
                 items.push({ title, img: img || null, url });
             }
         });
+
+        // Empty scoped container (lazy-loaded related block) – retry on full page once
+        if (
+            items.length === 0 &&
+            containerSelector &&
+            $(containerSelector).length > 0
+        ) {
+            return this.parseHtmlList(html, { ...config, containerSelector: null });
+        }
 
         return items;
     }

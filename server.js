@@ -10,12 +10,16 @@ const tagSectionRoutes = require("./routes/tag-section.routes");
 const channelsRoutes = require("./routes/channels.routes");
 const channelSectionRoutes = require("./routes/channel-section.routes");
 const watchRoutes = require("./routes/watch.routes");
+const relatedRoutes = require("./routes/related.routes");
 const errorHandler = require("./middleware/error-handler");
 const notFound = require("./middleware/not-found");
 const corsMiddleware = require("./middleware/cors");
 const requireApiKey = require("./middleware/require-api-key");
 const { apiLimiter } = require("./middleware/rate-limiter");
 const logger = require("./utils/logger");
+const { assertEnvOrExit } = require("./utils/validate-env");
+
+assertEnvOrExit();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -52,6 +56,7 @@ app.use("/api/tag-section", tagSectionRoutes);
 app.use("/api/channels", channelsRoutes);
 app.use("/api/channel-section", channelSectionRoutes);
 app.use("/api/watch", watchRoutes);
+app.use("/api/related", relatedRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

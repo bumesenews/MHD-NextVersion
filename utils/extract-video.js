@@ -18,13 +18,17 @@ function mapJsonVideoItem(item, mapping, baseUrl) {
     let url = null;
 
     if (mapping.urlBuilder === "xvideos-json") {
-        const slug = String(item[mapping.urlPathField] || "")
-            .split("/")
-            .pop();
         const eid = item[mapping.urlIdField];
-        url = eid
-            ? `${baseUrl.replace(/\/$/, "")}/video.${eid}/${slug || "_"}`
-            : null;
+        const pathField = item[mapping.urlPathField];
+
+        if (pathField && String(pathField).includes("/video.")) {
+            url = toAbsoluteUrl(baseUrl, pathField);
+        } else if (eid) {
+            const slug = String(pathField || "")
+                .split("/")
+                .pop();
+            url = `${baseUrl.replace(/\/$/, "")}/video.${eid}/${slug || "_"}`;
+        }
     } else if (mapping.urlField) {
         url = toAbsoluteUrl(baseUrl, item[mapping.urlField]);
     }
@@ -64,4 +68,72 @@ function extractStreamsFromHtml(html, videoConfig) {
     return streams;
 }
 
-module.exports = { mapJsonVideoItem, extractStreamsFromHtml };
+/**
+ * Extract a balanced JSON array that follows a marker in page HTML/JS.
+ * @param {string} html
+ * @param {string} marker
+ * @returns {any[]|null}
+ */
+function extractJsonArrayAfterMarker(html, marker) {
+    const idx = html.indexOf(marker);
+    if (idx === -1) return null;
+
+    const start = html.indexOf("[", idx);
+    if (start === -1) return null;
+
+    let depth = 0;
+    for (let i = start; i < html.length; i += 1) {
+        const char = html[i];
+        if (char === "[") depth += 1;
+        else if (char === "]") {
+            depth -= 1;
+            if (depth === 0) {
+                try {
+                    const parsed = JSON.parse(html.slice(start, i + 1));
+                    return Array.isArray(parsed) ? parsed : null;
+                } catch {
+                    return null;
+                }
+            }
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Parse related videos embedded in xvideos watch page JavaScript.
+ * @param {string} html
+ * @param {object} jsonMapping
+ * @param {string} baseUrl
+ * @returns {Array<{ title: string, img: string|null, url: string }>}
+ */
+function extractRelatedFromHtml(html, jsonMapping, baseUrl) {
+    const markers = [
+        "video_related=",
+        "setRelatedVideos(",
+        '"related_videos":',
+        "related_videos=",
+    ];
+
+    for (const marker of markers) {
+        const rawItems = extractJsonArrayAfterMarker(html, marker);
+        if (!rawItems?.length) continue;
+
+        const items = [];
+        for (const raw of rawItems) {
+            const mapped = mapJsonVideoItem(raw, jsonMapping, baseUrl);
+            if (mapped) items.push(mapped);
+        }
+
+        if (items.length > 0) return items;
+    }
+
+    return [];
+}
+
+module.exports = {
+    mapJsonVideoItem,
+    extractStreamsFromHtml,
+    extractRelatedFromHtml,
+};

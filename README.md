@@ -32,16 +32,19 @@ scraper-api/
 
 ## Data Sources
 
-| API | Source site | Config |
-|-----|-------------|--------|
-| `/api/home` | website1.com | `home.config.js` |
-| `/api/models` | website2.com | `models.config.js` |
-| `/api/model-section` | website2.com (parent URL from app) | `model-section.config.js` |
-| `/api/tags` | website3.com | `tags.config.js` |
-| `/api/tag-section` | website3.com (parent URL from app) | `tag-section.config.js` |
-| `/api/channels` | website4.com | `channels.config.js` |
-| `/api/channel-section` | website4.com (parent URL from app) | `channel-section.config.js` |
-| `/api/watch` | all sites | `watch.config.js` |
+| API | Env vars | Config |
+|-----|----------|--------|
+| `/api/home` | `HOME_BASE_URL`, `HOME_LIST_PATH` | `home.config.js` |
+| `/api/models` | `MODELS_BASE_URL`, `MODELS_LIST_PATH` | `models.config.js` |
+| `/api/model-section` | parent URL from app | `model-section.config.js` |
+| `/api/tags` | `TAGS_BASE_URL`, `TAGS_LIST_PATH` | `tags.config.js` |
+| `/api/tag-section` | parent URL from app | `tag-section.config.js` |
+| `/api/channels` | `CHANNELS_BASE_URL`, `CHANNELS_LIST_PATH` | `channels.config.js` |
+| `/api/channel-section` | parent URL from app | `channel-section.config.js` |
+| `/api/watch` | `WATCH_BASE_URL`, `WATCH_REFERER` | `watch.config.js` |
+| `/api/related` | parent URL from app | `related.config.js` |
+
+**Important:** Set real `https://` URLs in `.env` on the VPS. Do **not** use placeholder names like `website1.com` / `website2.com` from older docs.
 
 ## API Endpoints
 
@@ -63,6 +66,7 @@ All list/section endpoints return:
 | GET | `/api/channels` | `page` |
 | GET | `/api/channel-section` | `url` (required), `page` |
 | GET | `/api/watch` | `url` (required) |
+| GET | `/api/related` | `url` (required) |
 | GET | `/health` | – |
 
 ### Authentication
@@ -88,14 +92,19 @@ curl -H "X-Api-Key: $API_KEY" "http://localhost:3000/api/tag-section?url=https:/
 curl -H "X-Api-Key: $API_KEY" "http://localhost:3000/api/channels?page=1"
 curl -H "X-Api-Key: $API_KEY" "http://localhost:3000/api/channel-section?url=https://www.xvideos.com/myanma_porn&page=1"
 curl -H "X-Api-Key: $API_KEY" "http://localhost:3000/api/watch?url=https://www.xvideos.com/video.xxx/title"
+curl -H "X-Api-Key: $API_KEY" "http://localhost:3000/api/related?url=https://www.xvideos.com/amateurs/khaykhaymm2"
 ```
 
 ## Caching
 
-- All responses cached **8 hours** (28800 seconds)
-- Override with `CACHE_TTL` in `.env`
-- Cache key = endpoint + page + parent URL (for sections)
-- Fresh scrape only after TTL expires
+| Endpoint | TTL | Env override |
+|----------|-----|--------------|
+| `/api/home`, `/api/models`, `/api/tags`, `/api/channels`, section routes, `/api/related` | **8 hours** (28800 s) | `CACHE_TTL` |
+| `/api/watch` (m3u8 / mp4 stream URLs) | **3 minutes** (180 s) | `WATCH_CACHE_TTL` |
+
+- Cache key = endpoint + page + parent URL (sections) or video page URL (`/api/watch`)
+- Repeated `/api/watch` calls for the same `url` within 3 minutes return cached streams without re-scraping the page
+- Fresh scrape only after TTL expires (or after PM2 restart — cache is in-memory)
 
 ## Configuration
 
@@ -137,9 +146,12 @@ git clone <your-repo> scraper-api
 cd scraper-api
 npm install --production
 
-# Copy env template and set API_KEY + site URLs
+# Copy env template and set API_KEY + site URLs (must match your working local .env)
 cp .env.example .env
 nano .env
+
+# Verify URLs resolve from the VPS before starting PM2
+curl -I "https://www.xvideos.com/best/2026-05"
 
 # Create log directory
 mkdir -p logs

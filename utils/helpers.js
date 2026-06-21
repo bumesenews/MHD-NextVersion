@@ -60,10 +60,26 @@ function stripCountSuffix(text) {
         .trim();
 }
 
+/**
+ * Extract xvideos video eid from a watch page URL.
+ * e.g. /video.ooltike3264/slug -> ooltike3264
+ * @param {string} url
+ * @returns {string|null}
+ */
+function extractVideoEid(url) {
+    try {
+        const match = new URL(url).pathname.match(/\/video\.([^/?#]+)/i);
+        return match ? match[1] : null;
+    } catch {
+        return null;
+    }
+}
+
 module.exports = {
     parsePage,
     toZeroBasedPage,
     toAbsoluteUrl,
     isValidUrl,
     stripCountSuffix,
+    extractVideoEid,
 };

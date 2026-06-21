@@ -2,9 +2,18 @@
  * Global Express error handler.
  */
 function errorHandler(err, req, res, _next) {
-    const status = err.status || err.response?.status || 500;
+    let status = err.status || err.response?.status || 500;
     let message =
         err.message || "An unexpected error occurred during scraping.";
+
+    if (err.code === "EAI_AGAIN" || err.code === "ENOTFOUND") {
+        const host =
+            err.hostname ||
+            err.config?.hostname ||
+            (err.config?.url ? new URL(err.config.url).hostname : "target host");
+        message = `DNS lookup failed (${err.code}) for ${host}. Check .env URLs – do not use README placeholders like website1.com. Use the same https:// URLs that work on localhost.`;
+        status = 502;
+    }
 
     // Provide clearer guidance for upstream anti-bot blocks in VPS/datacenter environments.
     if (status === 403 && err.response?.config?.url) {
@@ -22,7 +31,12 @@ function errorHandler(err, req, res, _next) {
     );
 
     res.status(status >= 400 && status < 600 ? status : 500).json({
-        error: status >= 500 ? "Internal Server Error" : "Request Error",
+        error:
+            status === 502
+                ? "Bad Gateway"
+                : status >= 500
+                  ? "Internal Server Error"
+                  : "Request Error",
         message,
     });
 }

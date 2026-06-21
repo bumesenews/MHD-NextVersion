@@ -1,6 +1,7 @@
 const requestService = require("./request.service");
 const cacheService = require("./cache.service");
 const parserService = require("./parser.service");
+const { extractRelatedFromHtml } = require("../utils/extract-video");
 const { buildCacheKey } = require("../utils/cache-key");
 const { parsePage } = require("../utils/helpers");
 const logger = require("../utils/logger");
@@ -85,6 +86,87 @@ class ScraperService {
                 ...config,
                 baseUrl: origin,
             });
+        }
+
+        if (items.length > 0) {
+            cacheService.set(cacheKey, items);
+        }
+
+        return items;
+    }
+
+    /**
+     * Scrape related items from a parent URL (no pagination).
+     * @param {object} config
+     * @param {string} parentUrl
+     * @returns {Promise<Array<{ title, img, url }>>}
+     */
+    async scrapeRelated(config, parentUrl) {
+        const cacheKey = buildCacheKey(config.name, { url: parentUrl });
+
+        const cached = cacheService.get(cacheKey);
+        if (cached) return cached;
+
+        const parentParsed = new URL(parentUrl);
+        const origin = parentParsed.origin;
+        const plan = config.resolveTarget(parentUrl);
+
+        let items = [];
+
+        for (const strategy of plan.strategies) {
+            try {
+                const { data } = await requestService.fetch(strategy.url, {
+                    headers: {
+                        ...config.headers,
+                        Referer: plan.referer,
+                    },
+                });
+
+                if (strategy.type === "html-script" && typeof data === "string") {
+                    items = extractRelatedFromHtml(
+                        data,
+                        config.jsonMapping,
+                        origin
+                    );
+                } else if (strategy.type === "json" && data && typeof data === "object") {
+                    const field =
+                        strategy.itemsField || config.pagination.itemsField;
+                    const rawItems =
+                        data[field] || data.related || data.data || [];
+
+                    if (Array.isArray(rawItems) && rawItems.length) {
+                        items = parserService.parseJsonList(
+                            { [field]: rawItems },
+                            config,
+                            origin
+                        );
+                    }
+                } else if (typeof data === "string") {
+                    items = parserService.parseHtmlList(data, {
+                        ...config,
+                        baseUrl: origin,
+                        containerSelector:
+                            strategy.containerSelector !== undefined
+                                ? strategy.containerSelector
+                                : config.containerSelector,
+                    });
+                }
+
+                if (items.length > 0) {
+                    logger.info("Related scrape succeeded", {
+                        parentUrl,
+                        strategy: strategy.url,
+                        count: items.length,
+                    });
+                    break;
+                }
+            } catch (error) {
+                logger.warn("Related strategy failed", {
+                    parentUrl,
+                    strategy: strategy.url,
+                    message: error.message,
+                });
+            }
         }
 
         if (items.length > 0) {
