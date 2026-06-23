@@ -41,6 +41,7 @@ scraper-api/
 | `/api/tag-section` | parent URL from app | `tag-section.config.js` |
 | `/api/channels` | `CHANNELS_BASE_URL`, `CHANNELS_LIST_PATH` | `channels.config.js` |
 | `/api/channel-section` | parent URL from app | `channel-section.config.js` |
+| `/api/myanmar` | `MYANMAR_BASE_URL`, `MYANMAR_LIST_PATH` | `myanmar.config.js` |
 | `/api/watch` | `WATCH_BASE_URL`, `WATCH_REFERER` | `watch.config.js` |
 | `/api/related` | parent URL from app | `related.config.js` |
 
@@ -65,6 +66,7 @@ All list/section endpoints return:
 | GET | `/api/tag-section` | `url` (required), `page` |
 | GET | `/api/channels` | `page` |
 | GET | `/api/channel-section` | `url` (required), `page` |
+| GET | `/api/myanmar` | `page` |
 | GET | `/api/watch` | `url` (required) |
 | GET | `/api/related` | `url` (required) |
 | GET | `/health` | – |
@@ -91,6 +93,8 @@ curl -H "X-Api-Key: $API_KEY" "http://localhost:3000/api/tags?page=1"
 curl -H "X-Api-Key: $API_KEY" "http://localhost:3000/api/tag-section?url=https://www.xvideos.com/tags/myanmar&page=1"
 curl -H "X-Api-Key: $API_KEY" "http://localhost:3000/api/channels?page=1"
 curl -H "X-Api-Key: $API_KEY" "http://localhost:3000/api/channel-section?url=https://www.xvideos.com/myanma_porn&page=1"
+curl -H "X-Api-Key: $API_KEY" "http://localhost:3000/api/myanmar?page=1"
+curl -H "X-Api-Key: $API_KEY" "http://localhost:3000/api/myanmar?page=2"
 curl -H "X-Api-Key: $API_KEY" "http://localhost:3000/api/watch?url=https://www.xvideos.com/video.xxx/title"
 curl -H "X-Api-Key: $API_KEY" "http://localhost:3000/api/related?url=https://www.xvideos.com/amateurs/khaykhaymm2"
 ```
@@ -99,7 +103,7 @@ curl -H "X-Api-Key: $API_KEY" "http://localhost:3000/api/related?url=https://www
 
 | Endpoint | TTL | Env override |
 |----------|-----|--------------|
-| `/api/home`, `/api/models`, `/api/tags`, `/api/channels`, section routes, `/api/related` | **8 hours** (28800 s) | `CACHE_TTL` |
+| `/api/home`, `/api/models`, `/api/tags`, `/api/channels`, `/api/myanmar`, section routes, `/api/related` | **8 hours** (28800 s) | `CACHE_TTL` |
 | `/api/watch` (m3u8 / mp4 stream URLs) | **3 minutes** (180 s) | `WATCH_CACHE_TTL` |
 
 - Cache key = endpoint + page + parent URL (sections) or video page URL (`/api/watch`)
@@ -199,6 +203,8 @@ server {
 | `TAGS_LIST_PATH` | `/tags` | Tags list path |
 | `CHANNELS_BASE_URL` | xvideos.com | Website 4 base URL |
 | `CHANNELS_LIST_PATH` | `/channels-index` | Channels list path |
+| `MYANMAR_BASE_URL` | xvideos.com | Myanmar search base URL |
+| `MYANMAR_LIST_PATH` | `/?k=myanmar` | Myanmar search query path |
 | `WATCH_BASE_URL` | xvideos.com | Watch referer base URL |
 | `WATCH_REFERER` | xvideos.com | Watch HTTP referer header |
 

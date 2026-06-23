@@ -11,6 +11,7 @@ const channelsRoutes = require("./routes/channels.routes");
 const channelSectionRoutes = require("./routes/channel-section.routes");
 const watchRoutes = require("./routes/watch.routes");
 const relatedRoutes = require("./routes/related.routes");
+const myanmarRoutes = require("./routes/myanmar.routes");
 const errorHandler = require("./middleware/error-handler");
 const notFound = require("./middleware/not-found");
 const corsMiddleware = require("./middleware/cors");
@@ -57,6 +58,7 @@ app.use("/api/channels", channelsRoutes);
 app.use("/api/channel-section", channelSectionRoutes);
 app.use("/api/watch", watchRoutes);
 app.use("/api/related", relatedRoutes);
+app.use("/api/myanmar", myanmarRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
